@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Runner — Expense &amp; Budget Visualizer</title>
+  <style>
+    body { font-family: monospace; padding: 1rem; background: #1e1e1e; color: #d4d4d4; }
+    h1 { color: #9cdcfe; }
+    .suite { margin: 1rem 0; }
+    .suite-name { color: #569cd6; font-weight: bold; font-size: 1.1em; margin-bottom: 0.5rem; }
+    .pass { color: #4ec9b0; }
+    .fail { color: #f44747; }
+    .summary { margin-top: 1.5rem; font-size: 1.1em; border-top: 1px solid #444; padding-top: 1rem; }
+    .summary.all-pass { color: #4ec9b0; }
+    .summary.has-fail { color: #f44747; }
+    pre { background: #2d2d2d; padding: 0.5rem; border-radius: 4px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Test Runner</h1>
+  <div id="results"></div>
+  <div id="summary"></div>
+
+  <!-- Hidden DOM elements required by app.js -->
+  <div id="info-banner" hidden role="status" aria-live="polite"></div>
+
+  <!-- Application under test -->
+  <script src="../js/app.js"></script>
+
+  <!-- Minimal test runner framework -->
+  <script>
+    (function () {
+      'use strict';
+
+      const suites = [];
+      let currentSuite = null;
+
+      window.__testRunner__ = {
+        /** Register a test case */
+        test(name, fn) {
+          if (!currentSuite) {
+            currentSuite = { name: 'Default', tests: [] };
+            suites.push(currentSuite);
+          }
+          currentSuite.tests.push({ name, fn });
+        },
+
+        /** Simple assertion */
+        assert(condition, message) {
+          if (!condition) {
+            throw new Error(message || 'Assertion failed');
+          }
+        },
+
+        /** Start a named suite (call before loading test files) */
+        suite(name) {
+          currentSuite = { name, tests: [] };
+          suites.push(currentSuite);
+        },
+
+        /** Run all registered tests and render results */
+        run() {
+          const resultsEl = document.getElementById('results');
+          let totalPass = 0;
+          let totalFail = 0;
+
+          suites.forEach(function (suite) {
+            const suiteEl = document.createElement('div');
+            suiteEl.className = 'suite';
+            const nameEl = document.createElement('div');
+            nameEl.className = 'suite-name';
+            nameEl.textContent = suite.name;
+            suiteEl.appendChild(nameEl);
+
+            suite.tests.forEach(function (t) {
+              const testEl = document.createElement('div');
+              try {
+                t.fn();
+                testEl.className = 'pass';
+                testEl.textContent = '  ✓ ' + t.name;
+                totalPass++;
+              } catch (e) {
+                testEl.className = 'fail';
+                testEl.innerHTML = '  ✗ ' + t.name + '<pre>' + e.message + '</pre>';
+                totalFail++;
+              }
+              suiteEl.appendChild(testEl);
+            });
+
+            resultsEl.appendChild(suiteEl);
+          });
+
+          const summaryEl = document.getElementById('summary');
+          summaryEl.className = 'summary ' + (totalFail === 0 ? 'all-pass' : 'has-fail');
+          summaryEl.textContent =
+            'Results: ' + totalPass + ' passed, ' + totalFail + ' failed ' +
+            '(' + (totalPass + totalFail) + ' total)';
+        }
+      };
+    }());
+  </script>
+
+  <!-- Unit test suites -->
+  <script>
+    window.__testRunner__.suite('StorageManager — Unit Tests');
+  </script>
+  <script src="unit/storage.test.js"></script>
+
+  <script>
+    window.__testRunner__.suite('Validator — Unit Tests');
+  </script>
+  <script src="unit/validator.test.js"></script>
+
+  <!-- Run all tests after all scripts have loaded -->
+  <script>
+    window.__testRunner__.run();
+  </script>
+</body>
+</html>
